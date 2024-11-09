@@ -1,0 +1,9 @@
+<resources>
+    <color name="deep_purple">#6A1B9A</color>
+    <color name="light_purple">#BA68C8</color>
+    <color name="background_white">#FFFFFF</color>
+    <color name="text_black">#000000</color>
+    <color name="text_gray">#757575</color>
+    <color name="warning_orange">#FFA726</color>
+    <color name="warning_red">#E53935</color>
+</resources>

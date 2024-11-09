@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/description_dialog_scroll_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/description_dialog_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_dialog_background"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/dialog_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Description"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:gravity="center"
+            android:paddingBottom="8dp" />
+
+        <EditText
+            android:id="@+id/dialog_description_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter description"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:paddingBottom="16dp" />
+
+        <!-- Add Photo Button -->
+        <Button
+            android:id="@+id/add_photo_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Photo"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#8A2BE2"
+            android:padding="8dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Photo Preview -->
+        <ImageView
+            android:id="@+id/photo_preview"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/rating_prompt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rate this warning:"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:paddingTop="8dp" />
+
+        <LinearLayout
+            android:id="@+id/rating_buttons_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/rating_low"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Low"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#8A2BE2"
+                android:padding="8dp" />
+
+            <Button
+                android:id="@+id/rating_intermediary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Moderate"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#FFA500"
+                android:padding="8dp"
+                android:layout_marginStart="8dp" />
+
+            <Button
+                android:id="@+id/rating_dangerous"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="High"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#FF0000"
+                android:padding="8dp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/dialog_ok_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OK"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#8A2BE2"
+            android:padding="8dp" />
+    </LinearLayout>
+</ScrollView>

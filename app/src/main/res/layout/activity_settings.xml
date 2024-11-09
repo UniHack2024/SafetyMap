@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Notifications Setting -->
+        <TextView
+            android:id="@+id/notifications_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enable Notifications"
+            android:textSize="18sp"
+            android:layout_marginBottom="8dp"/>
+
+        <Switch
+            android:id="@+id/notifications_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"/>
+
+        <!-- Map Type Selection -->
+        <TextView
+            android:id="@+id/map_type_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Map Type"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <Spinner
+            android:id="@+id/map_type_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:entries="@array/map_type_array"
+            android:layout_marginTop="8dp" />
+
+        <!-- Proximity Radius -->
+        <TextView
+            android:id="@+id/proximity_radius_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Proximity Radius (meters)"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <SeekBar
+            android:id="@+id/proximity_radius_seekbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:min="10"
+            android:max="500" />
+
+        <TextView
+            android:id="@+id/proximity_radius_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="50 meters"
+            android:layout_marginTop="4dp" />
+
+        <!-- Marker Filtering -->
+        <TextView
+            android:id="@+id/marker_filter_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Show Markers"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <CheckBox
+            android:id="@+id/show_warnings_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Warnings"
+            android:checked="true" />
+
+        <CheckBox
+            android:id="@+id/show_complaints_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Complaints"
+            android:checked="true" />
+
+        <!-- Location Update Interval -->
+        <TextView
+            android:id="@+id/location_update_interval_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Location Update Interval (seconds)"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <SeekBar
+            android:id="@+id/location_update_interval_seekbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:min="1"
+            android:max="60" />
+
+        <TextView
+            android:id="@+id/location_update_interval_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5 seconds"
+            android:layout_marginTop="4dp" />
+
+        <!-- Theme Selection -->
+        <TextView
+            android:id="@+id/theme_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Theme"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <RadioGroup
+            android:id="@+id/theme_radio_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="8dp">
+
+            <RadioButton
+                android:id="@+id/theme_light"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Light" />
+
+            <RadioButton
+                android:id="@+id/theme_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dark"
+                android:layout_marginStart="16dp" />
+        </RadioGroup>
+
+        <!-- Notification Sound and Vibration -->
+        <TextView
+            android:id="@+id/notification_settings_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Notification Settings"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <Switch
+            android:id="@+id/notification_sound_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Notification Sound"
+            android:checked="true"
+            android:paddingTop="8dp" />
+
+        <Switch
+            android:id="@+id/notification_vibration_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Notification Vibration"
+            android:checked="true" />
+
+    </LinearLayout>
+</ScrollView>

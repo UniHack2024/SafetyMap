@@ -1,0 +1,39 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center"
+    android:background="@drawable/rounded_dialog_background">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Marker Options"
+        android:textSize="20sp"
+        android:fontFamily="@font/robotobold"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="@android:color/black" />
+
+    <Button
+        android:id="@+id/navigate_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Navigate"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/deep_purple"
+        android:layout_marginTop="8dp"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/remove_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Remove"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#F44336"
+        android:layout_marginTop="8dp"
+        android:padding="12dp" />
+</LinearLayout>

@@ -1,0 +1,31 @@
+<resources>
+    <style name="HeaderText" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textColor">@color/deep_purple</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:fontFamily">@font/robotoregular</item>
+    </style>
+
+    <style name="BodyText" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/light_purple</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">@font/robotobold</item>
+    </style>
+
+
+    <style name="CustomAlertDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="AppTheme.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Customize light theme -->
+    </style>
+
+    <style name="AppTheme.Dark" parent="ThemeOverlay.MaterialComponents.Dark.ActionBar">
+        <!-- Customize dark theme -->
+    </style>
+
+
+
+</resources>

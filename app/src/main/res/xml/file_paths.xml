@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Allows access to files in getExternalFilesDir() -->
+    <external-files-path
+        name="external_files"
+        path="." />
+    <!-- Optionally, allow access to the Pictures directory -->
+    <!-- Note: Access to shared directories is limited on newer Android versions -->
+    <external-path
+        name="external_pictures"
+        path="Pictures" />
+</paths>

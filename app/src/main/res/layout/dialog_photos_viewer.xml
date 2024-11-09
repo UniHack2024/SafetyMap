@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/photos_viewer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/rounded_dialog_background">
+
+    <TextView
+        android:id="@+id/photos_viewer_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Photos"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp"
+        android:gravity="center" />
+
+    <ListView
+        android:id="@+id/photos_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="8dp" />
+
+</LinearLayout>

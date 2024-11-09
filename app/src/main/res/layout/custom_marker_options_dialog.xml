@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/marker_options_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/rounded_dialog_background">
+
+    <TextView
+        android:id="@+id/marker_options_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Options"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp"
+        android:gravity="center" />
+
+    <Button
+        android:id="@+id/read_description_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Read Description"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/add_new_case_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add New Case"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/list_of_cases_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="List of Cases"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/see_photos_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="See Photos"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
+
+</LinearLayout>

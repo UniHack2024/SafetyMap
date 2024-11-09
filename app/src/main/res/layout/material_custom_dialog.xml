@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:contentPadding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:gravity="center">
+
+        <!-- Dialog title -->
+        <TextView
+            android:id="@+id/dialog_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Description"
+            android:textSize="20sp"
+            android:paddingBottom="16dp"
+            android:textColor="@android:color/black"
+            android:gravity="center" />
+
+        <!-- Simple EditText without border -->
+        <EditText
+            android:id="@+id/dialog_input"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:padding="10dp"
+            android:hint="Enter description here"
+            android:textColor="@android:color/black"
+            android:textColorHint="#8A2BE2"
+            android:gravity="top" />
+
+        <!-- Custom OK button -->
+        <Button
+            android:id="@+id/dialog_ok_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#8A2BE2"
+            android:text="OK"
+            android:textColor="@android:color/white"
+            android:padding="8dp"
+            android:textSize="16sp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

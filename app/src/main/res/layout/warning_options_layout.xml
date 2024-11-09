@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/warning_description"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Warning Description"
+        android:textSize="18sp"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/warning_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reported on: 12 May"
+        android:textSize="14sp"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/warning_score"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Score: Moderate"
+        android:textSize="16sp"
+        android:paddingBottom="8dp" />
+
+    <Button
+        android:id="@+id/add_case_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add New Case" />
+
+    <Button
+        android:id="@+id/list_cases_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="List of Cases"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
