@@ -43,6 +43,8 @@
             android:padding="8dp"
             android:layout_marginBottom="16dp" />
 
+
+
         <!-- Photo Preview -->
         <ImageView
             android:id="@+id/photo_preview"

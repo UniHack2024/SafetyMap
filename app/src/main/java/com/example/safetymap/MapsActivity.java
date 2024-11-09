@@ -42,6 +42,7 @@ import androidx.fragment.app.FragmentActivity;
 
 //import com.example.safetmapapp.R;
 
+import com.bumptech.glide.Glide;
 import com.example.safetymap.SettingsActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -98,6 +99,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng currentLatLng;
     private LatLng destinationLatLng;
     private Polyline currentRoute;
+
+    private boolean isAddingNewCase = false;
+
+    // Member variables
+    private Uri[] pendingImageUriHolder;
+    private ImageView pendingPhotoPreview;
+    private boolean isAddingNewCasePermissionPending = false;
+
 
     private Circle locationCircle;
     private Marker currentWaypoint;
@@ -697,6 +706,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+
     private void openCamera() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
@@ -746,27 +756,78 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return imageFile;
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    // Add member variables to hold references
+    private Uri[] galleryImageUriHolder;
+    private ImageView galleryPhotoPreview;
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == CAMERA_REQUEST_CODE) {
                 // Image captured by camera
                 if (tempImageUri != null) {
-                    photoPreview.setVisibility(View.VISIBLE);
-                    photoPreview.setImageURI(tempImageUri);
-                    selectedImageUri[0] = tempImageUri;
+                    if (isAddingNewCase) {
+                        // Handle new case photo
+                        if (galleryPhotoPreview != null) {
+                            galleryPhotoPreview.setVisibility(View.VISIBLE);
+                            Glide.with(this)
+                                    .load(tempImageUri)
+                                    .centerCrop()
+                                    .into(galleryPhotoPreview);
+                        }
+                        if (galleryImageUriHolder != null) {
+                            galleryImageUriHolder[0] = tempImageUri;
+                        }
+                    } else {
+                        // Handle photo for new warning or complaint
+                        if (photoPreview != null) {
+                            photoPreview.setVisibility(View.VISIBLE);
+                            Glide.with(this)
+                                    .load(tempImageUri)
+                                    .centerCrop()
+                                    .into(photoPreview);
+                        }
+                        selectedImageUri[0] = tempImageUri;
+                    }
                 }
             } else if (requestCode == GALLERY_REQUEST_CODE) {
                 // Image selected from gallery
-                Uri selectedUri = data.getData();
-                photoPreview.setVisibility(View.VISIBLE);
-                photoPreview.setImageURI(selectedUri);
-                selectedImageUri[0] = selectedUri;
+                if (data != null && data.getData() != null) {
+                    Uri selectedUri = data.getData();
+                    if (isAddingNewCase) {
+                        // Handle new case photo
+                        if (galleryPhotoPreview != null) {
+                            galleryPhotoPreview.setVisibility(View.VISIBLE);
+                            Glide.with(this)
+                                    .load(selectedUri)
+                                    .centerCrop()
+                                    .into(galleryPhotoPreview);
+                        }
+                        if (galleryImageUriHolder != null) {
+                            galleryImageUriHolder[0] = selectedUri;
+                        }
+                    } else {
+                        // Handle photo for new warning or complaint
+                        if (photoPreview != null) {
+                            photoPreview.setVisibility(View.VISIBLE);
+                            Glide.with(this)
+                                    .load(selectedUri)
+                                    .centerCrop()
+                                    .into(photoPreview);
+                        }
+                        selectedImageUri[0] = selectedUri;
+                    }
+                }
             }
+            // Reset the flag after handling
+            isAddingNewCase = false;
         }
     }
+
+
+
+
 
     private void addWarningMarker(LatLng latLng, String category, String description, String rating, Uri imageUri) {
         String currentDate = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date());
@@ -1023,6 +1084,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .show();
     }
 
+
+
+
     private void showImagePickerOptionsForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
         String[] options = {"Take Photo", "Choose from Gallery"};
 
@@ -1040,6 +1104,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         // Choose from gallery
                         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_REQUEST_CODE);
+                            // Store references for use after permission is granted
+                            pendingImageUriHolder = imageUriHolder;
+                            pendingPhotoPreview = photoPreview;
+                            isAddingNewCasePermissionPending = true;
                         } else {
                             openGalleryForNewCase(imageUriHolder, photoPreview);
                         }
@@ -1048,19 +1116,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .show();
     }
 
+
+
     private void openCameraForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
+        isAddingNewCase = true;
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             // Create a file to store the image
             File photoFile = null;
             try {
-                photoFile = createImageFile(); // Reuse the method to create a file
+                photoFile = createImageFile();
             } catch (IOException ex) {
                 ex.printStackTrace();
+                Toast.makeText(this, "Error occurred while creating the file", Toast.LENGTH_SHORT).show();
+                return;
             }
             if (photoFile != null) {
                 Uri imageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
                 cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE);
 
                 // Set the image URI to the holder
@@ -1070,17 +1144,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 photoPreview.setVisibility(View.VISIBLE);
                 photoPreview.setImageURI(imageUri);
             }
+        } else {
+            Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show();
         }
     }
 
+
     private void openGalleryForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
+        isAddingNewCase = true;
+        galleryImageUriHolder = imageUriHolder;
+        galleryPhotoPreview = photoPreview;
+
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE);
-
-        // Handle the result in onActivityResult
-        // Set the image URI to the holder in onActivityResult
-        // Update the photo preview
     }
+
+
 
     private void showListOfCasesDialog(MarkerInfo info) {
         // Inflate the custom layout for the list of cases
@@ -1108,7 +1187,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if (caseInfo.imageUri != null) {
                     casePhoto.setVisibility(View.VISIBLE);
-                    casePhoto.setImageURI(caseInfo.imageUri);
+                    Glide.with(MapsActivity.this)
+                            .load(caseInfo.imageUri)
+                            .centerCrop()
+                            .into(casePhoto);
                 } else {
                     casePhoto.setVisibility(View.GONE);
                 }
@@ -1124,6 +1206,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setPositiveButton("OK", null)
                 .show();
     }
+
 
     private void showPhotosDialog(List<Uri> imageUris) {
         // Inflate the custom layout for viewing photos
@@ -1144,7 +1227,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 ImageView photoView = convertView.findViewById(R.id.photo_view);
 
                 if (imageUri != null) {
-                    photoView.setImageURI(imageUri);
+                    Glide.with(MapsActivity.this)
+                            .load(imageUri)
+                            .centerCrop()
+                            .into(photoView);
                 }
 
                 return convertView;
@@ -1157,6 +1243,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setPositiveButton("OK", null)
                 .show();
     }
+
 
     private void centerMarker(Marker marker, float zoomLevel) {
         if (mMap != null) {
@@ -1282,24 +1369,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted for camera
-                openCamera();
-            } else {
-                Toast.makeText(this, "Camera permission is required to take photos.", Toast.LENGTH_SHORT).show();
-            }
-        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission granted for storage
-                openGallery();
+                if (isAddingNewCasePermissionPending) {
+                    isAddingNewCasePermissionPending = false;
+                    if (pendingImageUriHolder != null && pendingPhotoPreview != null) {
+                        openGalleryForNewCase(pendingImageUriHolder, pendingPhotoPreview);
+                        pendingImageUriHolder = null;
+                        pendingPhotoPreview = null;
+                    }
+                } else {
+                    openGallery();
+                }
             } else {
                 Toast.makeText(this, "Storage permission is required to select photos.", Toast.LENGTH_SHORT).show();
             }
+        } else if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted for camera
+                if (isAddingNewCasePermissionPending) {
+                    isAddingNewCasePermissionPending = false;
+                    if (pendingImageUriHolder != null && pendingPhotoPreview != null) {
+                        openCameraForNewCase(pendingImageUriHolder, pendingPhotoPreview);
+                        pendingImageUriHolder = null;
+                        pendingPhotoPreview = null;
+                    }
+                } else {
+                    openCamera();
+                }
+            } else {
+                Toast.makeText(this, "Camera permission is required to take photos.", Toast.LENGTH_SHORT).show();
+            }
         } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            // Handle location permissions
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            // Handle location permission result
         }
     }
+
+
 }
