@@ -4,20 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/text_black"
+    android:background="@drawable/background_gradient"
     tools:context=".MapsActivity">
-
-    <ImageView
-        android:id="@+id/logobia"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="105dp"
-        android:layout_marginTop="16dp"
-        android:src="@drawable/cl_logo"
-        android:contentDescription="@string/logo_desc" />
-
 
 
 
@@ -27,20 +15,32 @@
         android:layout_height="400dp"
         android:layout_centerInParent="true"
         android:src="@drawable/your_logo"
-      />
+        />
+
+    <TextView
+        android:id="@+id/tagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/logo"
+        android:layout_marginTop="20dp"
+        android:layout_centerHorizontal="true"
+        android:text="Sa traiesti"
+        android:textSize="20sp"
+        android:textColor="@color/deep_purple"
+        android:alpha="0" />
+
 
     <ProgressBar
         android:id="@+id/loading_screen"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="300dp"
-        android:layout_height="100px"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:layout_below="@id/logo"
-        android:layout_marginTop="1dp"
+        android:layout_marginTop="20dp"
         android:layout_centerHorizontal="true"
-        android:indeterminate="false"
-        android:max="100"
-        android:progress="0"
+        android:indeterminate="true"
         android:progressTint="@color/deep_purple" />
+
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"

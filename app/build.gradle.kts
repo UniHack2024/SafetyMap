@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -41,6 +42,7 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.play.services.places)
     implementation(libs.places)
+    implementation(libs.firebase.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -58,4 +60,7 @@ dependencies {
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    implementation("com.google.firebase:firebase-auth:22.1.1")
 }
+
+apply(plugin = "com.google.gms.google-services")

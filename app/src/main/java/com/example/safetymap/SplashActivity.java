@@ -2,6 +2,7 @@ package com.example.safetymap;
 
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.animation.Animation;
@@ -9,6 +10,7 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -25,15 +27,23 @@ public class SplashActivity extends AppCompatActivity {
 
         // Find the logo ImageView
         ImageView logo = findViewById(R.id.logo);
-        ImageView logoBia = findViewById(R.id.logobia);
+
 
         // Load the fade-in and scale animations and apply them to the logo
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
         Animation scale = AnimationUtils.loadAnimation(this, R.anim.scale);
+        Animation rotate = AnimationUtils.loadAnimation(this, R.anim.rotate);
+        Animation fadeOut = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+
+        logo.startAnimation(rotate);
 
 
 
+
+//        ProgressBar progressBar = findViewById(R.id.loading_screen);
         ProgressBar progressBar = findViewById(R.id.loading_screen);
+        progressBar.setIndeterminateTintList(ColorStateList.valueOf(getResources().getColor(R.color.background_white)));
+
         ObjectAnimator progressAnimator = ObjectAnimator.ofInt(progressBar, "progress", 0, 100);
         progressAnimator.setDuration(3000); // Set duration same as the splash screen duration
         progressAnimator.setInterpolator(new LinearInterpolator());
@@ -43,8 +53,14 @@ public class SplashActivity extends AppCompatActivity {
         logo.startAnimation(fadeIn);
         logo.startAnimation(scale);
 
-        logoBia.startAnimation(fadeIn);
-        logoBia.startAnimation(scale);
+
+
+        logo.startAnimation(fadeOut);
+
+
+        TextView tagline = findViewById(R.id.tagline);
+        tagline.startAnimation(fadeIn);
+
 
         progressAnimator.start();
 

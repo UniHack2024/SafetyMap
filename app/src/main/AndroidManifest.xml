@@ -1,49 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.safetymap" >
+    package="com.example.safetymap">
+
+    <!-- Permissions -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Use of WRITE_EXTERNAL_STORAGE is deprecated in API 29+. Consider using scoped storage -->
+    <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Remove if not targeting devices below API 18 -->
+    <!-- <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" /> -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.CAMERA"
-        tools:ignore="PermissionImpliesUnsupportedChromeOsHardware" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Ensure runtime permissions are handled for these permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- For Android 13+ (API level 33), use READ_MEDIA_IMAGES instead of READ_EXTERNAL_STORAGE -->
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.SafetyMap">
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
 
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDd6sGcDbxwXKGPm_FQ8p-qW1IDfDZWjpE"/>
-
-        <!-- Splash Activity will launch the app -->
+        <!-- Splash Activity (Launcher) -->
         <activity
-            android:name="com.example.safetymap.SplashActivity"
-            android:exported="true">
+            android:name=".LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name="com.example.safetymap.SettingsActivity" />
+        <!-- Login Activity -->
+        <activity
+            android:name=".SplashActivity"
+            android:exported="false"
+        android:theme="@style/Theme.SafetyMap">
+        </activity>
+        <!-- Register Activity -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false"
+           android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+        </activity>
 
-        <!-- Add provider for FileProvider -->
+        <!-- Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" />
+
+        <!-- Maps Activity -->
+        <activity
+            android:name=".MapsActivity"
+            android:exported="false"
+            android:label="Maps"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait" />
+
+        <!-- Settings Activity -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+
+        <!-- FileProvider for sharing files (e.g., images) -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -54,21 +84,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Main Activity -->
-        <activity
-            android:name="com.example.safetymap.MainActivity"
-            android:exported="true"
-            android:screenOrientation="portrait"
-            android:label="@string/app_name">
-        </activity>
+        <!-- Meta-data for Google Play Services -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
 
-        <!-- Maps Activity -->
-        <activity
-            android:name="com.example.safetymap.MapsActivity"
-            android:label="Maps"
-            android:screenOrientation="portrait"
-            android:parentActivityName="com.example.safetymap.MainActivity">
-        </activity>
+        <!-- Google Maps API Key (Replace with your actual key in production) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDd6sGcDbxwXKGPm_FQ8p-qW1IDfDZWjpE" />
 
     </application>
 
