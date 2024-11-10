@@ -2,6 +2,7 @@ package com.example.safetymap;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -27,20 +28,19 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.FragmentActivity;
-
-//import com.example.safetmapapp.R;
 
 import com.bumptech.glide.Glide;
 import com.example.safetymap.SettingsActivity;
@@ -53,46 +53,76 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
+
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.libraries.places.api.Places;
+
 import com.google.android.libraries.places.api.model.Place;
+
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+// Firebase imports
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
+
 import org.jetbrains.annotations.NotNull;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
 import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+
 import java.util.HashMap;
+
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
-    private static final String DIRECTIONS_API_KEY = "AIzaSyA8yicEvne7a6Q9Cn6zi8WrOfoVSmAazH0";
+    private static final String DIRECTIONS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -106,7 +136,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Uri[] pendingImageUriHolder;
     private ImageView pendingPhotoPreview;
     private boolean isAddingNewCasePermissionPending = false;
-
 
     private Circle locationCircle;
     private Marker currentWaypoint;
@@ -160,6 +189,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // FusedLocationProviderClient and LocationCallback
     private LocationCallback locationCallback;
 
+    // Firebase variables
+    private DatabaseReference warningsRef;
+    private DatabaseReference complaintsRef;
+    private FirebaseStorage firebaseStorage;
+
     @SuppressLint("NonConstantResourceId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,11 +214,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Create notification channel
         createNotificationChannel();
 
+        // Initialize Firebase references
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        warningsRef = database.getReference("warnings");
+        complaintsRef = database.getReference("complaints");
+        firebaseStorage = FirebaseStorage.getInstance();
+
         // Initialize location client and callback
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                // ... Existing code
                 if (locationResult == null) {
                     return;
                 }
@@ -225,6 +264,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .position(destinationLatLng)
                                 .title(place.getName()));
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(destinationLatLng, 18));
+                        fetchRoute(currentLatLng, destinationLatLng);
                     }
                 }
 
@@ -359,10 +399,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .position(destinationLatLng)
                     .title(poi.name));
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(destinationLatLng, 18));
-            showMarkerOptionsDialog(selectedDestinationMarker, null);
+            fetchRoute(currentLatLng, destinationLatLng);
         });
 
         updateMarkerVisibility();
+
+        // Fetch warnings and complaints from Firebase
+        fetchWarningsFromFirebase();
+        fetchComplaintsFromFirebase();
     }
 
     private void enableUserLocation() {
@@ -611,38 +655,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         photoPreview = dialogView.findViewById(R.id.photo_preview);
         Button addPhotoButton = dialogView.findViewById(R.id.add_photo_button);
 
-        // Rating prompt and buttons
+        // Rating prompt and RadioGroup
         TextView ratingPrompt = dialogView.findViewById(R.id.rating_prompt);
-        Button ratingLow = dialogView.findViewById(R.id.rating_low);
-        Button ratingIntermediary = dialogView.findViewById(R.id.rating_intermediary);
-        Button ratingDangerous = dialogView.findViewById(R.id.rating_dangerous);
+        RadioGroup ratingRadioGroup = dialogView.findViewById(R.id.rating_radio_group);
+        RadioButton radioLow = dialogView.findViewById(R.id.radio_low);
+        RadioButton radioModerate = dialogView.findViewById(R.id.radio_moderate);
+        RadioButton radioHigh = dialogView.findViewById(R.id.radio_high);
 
-        final String[] selectedRating = {null};
-        selectedImageUri[0] = null;
         currentImageUri = null;
 
         if (isWarning) {
             ratingPrompt.setText("Rate this warning:");
             // Set text for warning ratings
-            ratingLow.setText("Low");
-            ratingIntermediary.setText("Moderate");
-            ratingDangerous.setText("High");
-
-            // Set up rating button listeners
-            ratingLow.setOnClickListener(v -> selectedRating[0] = "Low");
-            ratingIntermediary.setOnClickListener(v -> selectedRating[0] = "Moderate");
-            ratingDangerous.setOnClickListener(v -> selectedRating[0] = "High");
+            radioLow.setText("Low");
+            radioModerate.setText("Moderate");
+            radioHigh.setText("High");
         } else {
             ratingPrompt.setText("Set urgency level:");
             // Set text for complaint urgency ratings
-            ratingLow.setText("Non-Urgent");
-            ratingIntermediary.setText("Moderate");
-            ratingDangerous.setText("Urgent");
-
-            // Set up rating button listeners
-            ratingLow.setOnClickListener(v -> selectedRating[0] = "Non-Urgent");
-            ratingIntermediary.setOnClickListener(v -> selectedRating[0] = "Moderate");
-            ratingDangerous.setOnClickListener(v -> selectedRating[0] = "Urgent");
+            radioLow.setText("Non-Urgent");
+            radioModerate.setText("Moderate");
+            radioHigh.setText("Urgent");
         }
 
         // Add photo button click listener
@@ -652,32 +685,65 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // Create and show the dialog
-        AlertDialog dialog = builder.create();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
         dialog.show();
 
         // Handle OK button click
         okButton.setOnClickListener(v -> {
-            currentDescription = input.getText().toString();
+            currentDescription = input.getText().toString().trim();
             currentCategory = category;
-            Uri imageUri = selectedImageUri[0];
-            currentRating = selectedRating[0];  // Assign the selected rating/urgency
 
-            if (currentRating == null) {
+            // Get selected rating from RadioGroup
+            int selectedId = ratingRadioGroup.getCheckedRadioButtonId();
+            if (selectedId == -1) {
                 Toast.makeText(MapsActivity.this, "Please select a rating.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            if (isWarning) {
-                isAddingWarning = true;
-                currentImageUri = imageUri;
-                Toast.makeText(MapsActivity.this, "Click on the map to add a " + category + " warning", Toast.LENGTH_SHORT).show();
-            } else {
-                isAddingComplaint = true;
-                currentImageUri = imageUri;
-                Toast.makeText(MapsActivity.this, "Click on the map to add a complaint about " + category, Toast.LENGTH_SHORT).show();
+            RadioButton selectedRadioButton = dialogView.findViewById(selectedId);
+            currentRating = selectedRadioButton.getText().toString();
+
+            Log.d("MapsActivity", "OK Clicked - Description: " + currentDescription + ", Rating: " + currentRating);
+
+            // Validate inputs
+            if (currentDescription.isEmpty()) {
+                Toast.makeText(MapsActivity.this, "Please enter a description.", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            // Handle image upload if an image was selected
+            if (selectedImageUri[0] != null) {
+                uploadImageToFirebaseStorage(selectedImageUri[0], new OnImageUploadListener() {
+                    @Override
+                    public void onImageUploaded(String uploadedImageUrl) {
+                        currentImageUri = Uri.parse(uploadedImageUrl);
+                        proceedToAddMarker(isWarning);
+                    }
+
+                    @Override
+                    public void onImageUploadFailed(Exception exception) {
+                        Toast.makeText(MapsActivity.this, "Image upload failed.", Toast.LENGTH_SHORT).show();
+                        proceedToAddMarker(isWarning); // Proceed without image
+                    }
+                });
+            } else {
+                proceedToAddMarker(isWarning); // Proceed without image
+            }
+
             dialog.dismiss(); // Close the dialog after "OK" is clicked
         });
+    }
+
+
+
+    private void proceedToAddMarker(boolean isWarning) {
+        if (isWarning) {
+            isAddingWarning = true;
+            Toast.makeText(MapsActivity.this, "Click on the map to add a warning for " + currentCategory, Toast.LENGTH_SHORT).show();
+        } else {
+            isAddingComplaint = true;
+            Toast.makeText(MapsActivity.this, "Click on the map to add a complaint for " + currentCategory, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showImagePickerOptions() {
@@ -705,8 +771,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .show();
     }
 
-
-
     private void openCamera() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
@@ -716,6 +780,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 ex.printStackTrace();
+                Toast.makeText(this, "Error occurred while creating the file", Toast.LENGTH_SHORT).show();
             }
             if (photoFile != null) {
                 tempImageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
@@ -731,7 +796,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         intent.setType("image/*");
         startActivityForResult(intent, GALLERY_REQUEST_CODE);
     }
-
 
     private File createImageFile() throws IOException {
         // Create an image file name with a timestamp
@@ -763,6 +827,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (resultCode == RESULT_OK) {
             if (requestCode == CAMERA_REQUEST_CODE) {
                 // Image captured by camera
@@ -825,67 +890,178 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // Function to add warning to Firebase
+    private void addWarningToFirebase(MarkerInfo warning) {
+        String warningId = warningsRef.push().getKey();
+        if (warningId != null) {
+            warningsRef.child(warningId).setValue(warning)
+                    .addOnSuccessListener(aVoid -> Log.d("Firebase", "Warning added successfully"))
+                    .addOnFailureListener(e -> Log.e("Firebase", "Failed to add warning", e));
+        } else {
+            Log.e("Firebase", "Failed to generate warning ID");
+        }
+    }
 
+    // Function to add complaint to Firebase
+    private void addComplaintToFirebase(MarkerInfo complaint) {
+        String complaintId = complaintsRef.push().getKey();
+        if (complaintId != null) {
+            complaintsRef.child(complaintId).setValue(complaint)
+                    .addOnSuccessListener(aVoid -> Log.d("Firebase", "Complaint added successfully"))
+                    .addOnFailureListener(e -> Log.e("Firebase", "Failed to add complaint", e));
+        } else {
+            Log.e("Firebase", "Failed to generate complaint ID");
+        }
+    }
 
+    // Fetch warnings from Firebase and display them on the map
+    private void fetchWarningsFromFirebase() {
+        warningsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                // Clear existing markers
+                for (Marker marker : warningMarkers.keySet()) {
+                    marker.remove();
+                }
+                warningMarkers.clear();
 
+                for (DataSnapshot warningSnapshot : snapshot.getChildren()) {
+                    MarkerInfo warning = warningSnapshot.getValue(MarkerInfo.class);
+                    if (warning != null) {
+                        addWarningMarkerToMap(warning);
+                    } else {
+                        Log.e("MapsActivity", "Warning data is null for key: " + warningSnapshot.getKey());
+                    }
+                }
+            }
 
-    private void addWarningMarker(LatLng latLng, String category, String description, String rating, Uri imageUri) {
-        String currentDate = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date());
+            @Override
+            public void onCancelled(DatabaseError error) {
+                Log.w("Firebase", "Failed to read warnings.", error.toException());
+            }
+        });
+    }
+
+    // Fetch complaints from Firebase and display them on the map
+    private void fetchComplaintsFromFirebase() {
+        complaintsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                // Clear existing markers
+                for (Marker marker : complaintMarkers.keySet()) {
+                    marker.remove();
+                }
+                complaintMarkers.clear();
+
+                for (DataSnapshot complaintSnapshot : snapshot.getChildren()) {
+                    MarkerInfo complaint = complaintSnapshot.getValue(MarkerInfo.class);
+                    if (complaint != null) {
+                        addComplaintMarkerToMap(complaint);
+                    } else {
+                        Log.e("MapsActivity", "Complaint data is null for key: " + complaintSnapshot.getKey());
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                Log.w("Firebase", "Failed to read complaints.", error.toException());
+            }
+        });
+    }
+
+    // Add warning marker to the map from MarkerInfo
+    private void addWarningMarkerToMap(MarkerInfo warning) {
+        if (warning == null) {
+            Log.e("MapsActivity", "WarningInfo is null");
+            return;
+        }
+
+        LatLng position = new LatLng(warning.getLatitude(), warning.getLongitude());
+
+        String currentDate;
+        try {
+            currentDate = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date(warning.getReportedDate()));
+        } catch (Exception e) {
+            currentDate = "Unknown Date";
+            Log.e("MapsActivity", "Error formatting date: " + e.getMessage());
+        }
 
         // Define radius and color intensity based on rating
         int radius;
         int fillColor;
 
-        switch (rating) {
+        String ratingOrUrgency = warning.getRatingOrUrgency();
+        if (ratingOrUrgency == null) {
+            ratingOrUrgency = "Unknown"; // Default value
+            Log.w("MapsActivity", "ratingOrUrgency is null for warning at position: " + position.toString());
+        }
+
+        switch (ratingOrUrgency) {
             case "Low":
-                radius = 10;  // Smaller radius for low warnings
-                fillColor = Color.argb(50, 0, 255, 0);  // Light green with more transparency
+                radius = 10;
+                fillColor = Color.argb(50, 0, 255, 0);
                 break;
             case "Moderate":
-                radius = 25;  // Medium radius for intermediary warnings
-                fillColor = Color.argb(100, 255, 165, 0);  // Orange with moderate transparency
+                radius = 25;
+                fillColor = Color.argb(100, 255, 165, 0);
                 break;
             case "High":
-                radius = 40;  // Larger radius for dangerous warnings
-                fillColor = Color.argb(150, 255, 0, 0);  // Red with less transparency
+                radius = 40;
+                fillColor = Color.argb(150, 255, 0, 0);
                 break;
             default:
-                radius = 50;  // Default radius
-                fillColor = Color.argb(100, 0, 0, 255);  // Default to blue color
+                radius = 50;
+                fillColor = Color.argb(100, 0, 0, 255);
                 break;
         }
 
+        String category = warning.getCategory();
+        if (category == null) {
+            category = "Unknown Category"; // Default value
+            Log.w("MapsActivity", "Category is null for warning at position: " + position.toString());
+        }
+
+        String title = category + " - " + currentDate;
+        String snippet = "Rating: " + ratingOrUrgency + "\nNumber of Cases: " + warning.getNumberOfCases();
+
+        Log.d("MapsActivity", "Adding marker - Title: " + title + ", Snippet: " + snippet);
+
         Marker marker = mMap.addMarker(new MarkerOptions()
-                .position(latLng)
-                .title(category + " - " + currentDate)
-                .snippet("Rating: " + rating + "\nNumber of Cases: 1")
+                .position(position)
+                .title(title)
+                .snippet(snippet)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
         if (marker != null) {
             Circle circle = mMap.addCircle(new CircleOptions()
-                    .center(latLng)
-                    .radius(radius)  // Dynamic radius based on rating
+                    .center(position)
+                    .radius(radius)
                     .strokeColor(Color.RED)
-                    .fillColor(fillColor));  // Dynamic color intensity based on rating
+                    .fillColor(fillColor));
 
             // Save the marker and its info
-            List<Uri> imageUris = new ArrayList<>();
-            if (imageUri != null) {
-                imageUris.add(imageUri);
-            }
-            warningMarkers.put(marker, new MarkerInfo(category, description, new Date(), circle, 1, rating, imageUris));
+            warningMarkers.put(marker, warning);
             marker.showInfoWindow();
+
+            Log.d("MapsActivity", "Marker added successfully for position: " + position.toString());
+        } else {
+            Log.e("MapsActivity", "Failed to add marker for warning: " + title);
         }
     }
 
-    private void addComplaintMarker(LatLng latLng, String category, String description, String urgency, Uri imageUri) {
-        String currentDate = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date());
+
+
+    // Add complaint marker to the map from MarkerInfo
+    private void addComplaintMarkerToMap(MarkerInfo complaint) {
+        LatLng position = new LatLng(complaint.getLatitude(), complaint.getLongitude());
+        String currentDate = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date(complaint.getReportedDate()));
 
         // Define color and icon based on urgency
         float markerColor;
-        String snippetText = "Urgency: " + urgency + "\nNumber of Cases: 1";
+        String snippetText = "Urgency: " + complaint.getRatingOrUrgency() + "\nNumber of Cases: " + complaint.getNumberOfCases();
 
-        switch (urgency) {
+        switch (complaint.getRatingOrUrgency()) {
             case "Non-Urgent":
                 markerColor = BitmapDescriptorFactory.HUE_GREEN;
                 break;
@@ -901,20 +1077,140 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         Marker marker = mMap.addMarker(new MarkerOptions()
-                .position(latLng)
-                .title(category + " - " + currentDate)
+                .position(position)
+                .title(complaint.getCategory() + " - " + currentDate)
                 .snippet(snippetText)
                 .icon(BitmapDescriptorFactory.defaultMarker(markerColor)));
 
         if (marker != null) {
             // Save the marker and its info
-            List<Uri> imageUris = new ArrayList<>();
-            if (imageUri != null) {
-                imageUris.add(imageUri);
-            }
-            complaintMarkers.put(marker, new MarkerInfo(category, description, new Date(), null, 1, urgency, imageUris));
+            complaintMarkers.put(marker, complaint);
             marker.showInfoWindow();
         }
+    }
+
+    // Function to add warning to Firebase
+    private void addWarningMarker(LatLng latLng, String category, String description, String rating, Uri imageUri) {
+        Log.d("MapsActivity", "Adding Warning - Category: " + category + ", Description: " + description + ", Rating: " + rating + ", ImageUri: " + imageUri);
+
+        uploadImageToFirebaseStorage(imageUri, new OnImageUploadListener() {
+            @Override
+            public void onImageUploaded(String imageUrl) {
+                long currentDateMillis = new Date().getTime();
+
+                List<String> imageUrls = imageUrl != null ? Arrays.asList(imageUrl) : null;
+
+                MarkerInfo warningInfo = new MarkerInfo(category, description, currentDateMillis, latLng.latitude, latLng.longitude, 1, rating, imageUrls);
+
+                Log.d("MapsActivity", "Created MarkerInfo: " + warningInfo.toString());
+
+                // Add to Firebase
+                addWarningToFirebase(warningInfo);
+            }
+
+            @Override
+            public void onImageUploadFailed(Exception exception) {
+                Toast.makeText(MapsActivity.this, "Image upload failed.", Toast.LENGTH_SHORT).show();
+                // Optionally proceed without image
+                long currentDateMillis = new Date().getTime();
+                MarkerInfo warningInfo = new MarkerInfo(category, description, currentDateMillis, latLng.latitude, latLng.longitude, 1, rating, null);
+                addWarningToFirebase(warningInfo);
+            }
+        });
+    }
+
+
+    // Function to add complaint to Firebase
+    private void addComplaintMarker(LatLng latLng, String category, String description, String urgency, Uri imageUri) {
+        uploadImageToFirebaseStorage(imageUri, new OnImageUploadListener() {
+            @Override
+            public void onImageUploaded(String imageUrl) {
+                long currentDateMillis = new Date().getTime();
+
+                List<String> imageUrls = imageUrl != null ? Arrays.asList(imageUrl) : null;
+
+                MarkerInfo complaintInfo = new MarkerInfo(category, description, currentDateMillis, latLng.latitude, latLng.longitude, 1, urgency, imageUrls);
+
+                // Add to Firebase
+                addComplaintToFirebase(complaintInfo);
+            }
+
+            @Override
+            public void onImageUploadFailed(Exception exception) {
+                Toast.makeText(MapsActivity.this, "Image upload failed.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // Upload image to Firebase Storage
+    private void uploadImageToFirebaseStorage(Uri imageUri, final OnImageUploadListener listener) {
+        if (imageUri != null) {
+            StorageReference storageRef = firebaseStorage.getReference();
+            StorageReference imagesRef = storageRef.child("images/" + UUID.randomUUID().toString());
+
+            UploadTask uploadTask = imagesRef.putFile(imageUri);
+            uploadTask.addOnSuccessListener(taskSnapshot -> {
+                imagesRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    String imageUrl = uri.toString();
+                    listener.onImageUploaded(imageUrl);
+                });
+            }).addOnFailureListener(e -> {
+                listener.onImageUploadFailed(e);
+            });
+        } else {
+            listener.onImageUploaded(null);
+        }
+    }
+
+    public interface OnImageUploadListener {
+        void onImageUploaded(String imageUrl);
+        void onImageUploadFailed(Exception exception);
+    }
+
+    // Update warning in Firebase when adding new cases
+    private void updateWarningInFirebase(MarkerInfo warning) {
+        // Assuming that latitude and longitude uniquely identify a warning
+        warningsRef.orderByChild("latitude").equalTo(warning.getLatitude())
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        for (DataSnapshot childSnapshot : snapshot.getChildren()) {
+                            Double lng = childSnapshot.child("longitude").getValue(Double.class);
+                            if (lng != null && lng.equals(warning.getLongitude())) {
+                                childSnapshot.getRef().setValue(warning);
+                                break;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {
+                        Log.w("Firebase", "Failed to update warning.", error.toException());
+                    }
+                });
+    }
+
+    // Update complaint in Firebase when adding new cases
+    private void updateComplaintInFirebase(MarkerInfo complaint) {
+        // Assuming that latitude and longitude uniquely identify a complaint
+        complaintsRef.orderByChild("latitude").equalTo(complaint.getLatitude())
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        for (DataSnapshot childSnapshot : snapshot.getChildren()) {
+                            Double lng = childSnapshot.child("longitude").getValue(Double.class);
+                            if (lng != null && lng.equals(complaint.getLongitude())) {
+                                childSnapshot.getRef().setValue(complaint);
+                                break;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {
+                        Log.w("Firebase", "Failed to update complaint.", error.toException());
+                    }
+                });
     }
 
     private void showMarkerOptionsDialog(Marker marker, HashMap<Marker, MarkerInfo> markerMap) {
@@ -928,11 +1224,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Update snippet to display urgency or rating
             String snippetText;
             if (warningMarkers.containsKey(marker)) {
-                snippetText = "Rating: " + info.ratingOrUrgency + "\nNumber of Cases: " + info.numberOfCases;
+                snippetText = "Rating: " + info.getRatingOrUrgency() + "\nNumber of Cases: " + info.getNumberOfCases();
             } else if (complaintMarkers.containsKey(marker)) {
-                snippetText = "Urgency: " + info.ratingOrUrgency + "\nNumber of Cases: " + info.numberOfCases;
+                snippetText = "Urgency: " + info.getRatingOrUrgency() + "\nNumber of Cases: " + info.getNumberOfCases();
             } else {
-                snippetText = "Number of Cases: " + info.numberOfCases;
+                snippetText = "Number of Cases: " + info.getNumberOfCases();
             }
             marker.setSnippet(snippetText);
             marker.showInfoWindow();
@@ -948,7 +1244,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             View seePhotosOption = dialogView.findViewById(R.id.see_photos_option);
 
             // Hide "See Photos" option if there are no photos
-            if (info.imageUris == null || info.imageUris.isEmpty()) {
+            if (info.getImageUrls() == null || info.getImageUrls().isEmpty()) {
                 seePhotosOption.setVisibility(View.GONE);
             }
 
@@ -969,7 +1265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 View okButton = descriptionView.findViewById(R.id.description_ok_button);
 
                 // Set the description text
-                descriptionText.setText(info.description);
+                descriptionText.setText(info.getDescription());
 
                 // Create and show the AlertDialog using the custom layout
                 AlertDialog descriptionDialog = new AlertDialog.Builder(this)
@@ -995,7 +1291,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             seePhotosOption.setOnClickListener(v -> {
                 dialog.dismiss();
-                showPhotosDialog(info.imageUris);
+                showPhotosDialog(info.getImageUrls());
             });
 
             // Show the dialog
@@ -1025,10 +1321,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 marker.remove();
                                 if (warningMarkers.containsKey(marker)) {
-                                    MarkerInfo markerInfo = warningMarkers.get(marker);
-                                    if (markerInfo.circle != null) {
-                                        markerInfo.circle.remove(); // Remove associated circle
-                                    }
                                     warningMarkers.remove(marker);
                                 }
                                 if (complaintMarkers.containsKey(marker)) {
@@ -1060,32 +1352,73 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setTitle("Add New Case")
                 .setView(dialogView)
                 .setPositiveButton("OK", (dialog, which) -> {
-                    String newCaseDescription = input.getText().toString();
+                    String newCaseDescription = input.getText().toString().trim();
                     String currentDate = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(new Date());
-                    info.caseDescriptions.add(new CaseInfo(currentDate, newCaseDescription, newCaseImageUri[0]));
-                    info.numberOfCases++;
 
-                    // Add the new image to the list
+                    // Validate input
+                    if (newCaseDescription.isEmpty()) {
+                        Toast.makeText(MapsActivity.this, "Please enter a description.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Handle image upload if an image was selected
                     if (newCaseImageUri[0] != null) {
-                        info.imageUris.add(newCaseImageUri[0]);
+                        uploadImageToFirebaseStorage(newCaseImageUri[0], new OnImageUploadListener() {
+                            @Override
+                            public void onImageUploaded(String uploadedImageUrl) {
+                                String imageUrl = uploadedImageUrl != null ? uploadedImageUrl : null;
+                                addNewCaseToMarker(info, newCaseDescription, imageUrl);
+                            }
+
+                            @Override
+                            public void onImageUploadFailed(Exception exception) {
+                                Toast.makeText(MapsActivity.this, "Image upload failed.", Toast.LENGTH_SHORT).show();
+                                addNewCaseToMarker(info, newCaseDescription, null); // Proceed without image
+                            }
+                        });
+                    } else {
+                        addNewCaseToMarker(info, newCaseDescription, null); // Proceed without image
                     }
 
-                    // Update the marker's snippet
-                    if (warningMarkers.containsKey(marker)) {
-                        marker.setSnippet("Rating: " + info.ratingOrUrgency + "\nNumber of Cases: " + info.numberOfCases);
-                    } else if (complaintMarkers.containsKey(marker)) {
-                        marker.setSnippet("Urgency: " + info.ratingOrUrgency + "\nNumber of Cases: " + info.numberOfCases);
-                    } else {
-                        marker.setSnippet("Number of Cases: " + info.numberOfCases);
-                    }
-                    marker.showInfoWindow();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
+    private void addNewCaseToMarker(MarkerInfo info, String description, String imageUrl) {
+        // Add a new case with a unique ID
+        info.addCase(description, imageUrl);
 
-
+        // Update the marker's snippet
+        Marker targetMarker = null;
+        if (warningMarkers.containsValue(info)) {
+            for (Map.Entry<Marker, MarkerInfo> entry : warningMarkers.entrySet()) {
+                if (entry.getValue().equals(info)) {
+                    targetMarker = entry.getKey();
+                    break;
+                }
+            }
+            if (targetMarker != null) {
+                targetMarker.setSnippet("Rating: " + info.getRatingOrUrgency() + "\nNumber of Cases: " + info.getNumberOfCases());
+                targetMarker.showInfoWindow();
+                // Update in Firebase
+                updateWarningInFirebase(info);
+            }
+        } else if (complaintMarkers.containsValue(info)) {
+            for (Map.Entry<Marker, MarkerInfo> entry : complaintMarkers.entrySet()) {
+                if (entry.getValue().equals(info)) {
+                    targetMarker = entry.getKey();
+                    break;
+                }
+            }
+            if (targetMarker != null) {
+                targetMarker.setSnippet("Urgency: " + info.getRatingOrUrgency() + "\nNumber of Cases: " + info.getNumberOfCases());
+                targetMarker.showInfoWindow();
+                // Update in Firebase
+                updateComplaintInFirebase(info);
+            }
+        }
+    }
 
     private void showImagePickerOptionsForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
         String[] options = {"Take Photo", "Choose from Gallery"};
@@ -1116,10 +1449,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .show();
     }
 
-
-
     private void openCameraForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
         isAddingNewCase = true;
+        galleryImageUriHolder = imageUriHolder;
+        galleryPhotoPreview = photoPreview;
+
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             // Create a file to store the image
@@ -1132,23 +1466,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
             if (photoFile != null) {
-                Uri imageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                tempImageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, tempImageUri);
                 cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE);
-
-                // Set the image URI to the holder
-                imageUriHolder[0] = imageUri;
-
-                // Update the photo preview
-                photoPreview.setVisibility(View.VISIBLE);
-                photoPreview.setImageURI(imageUri);
             }
         } else {
             Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show();
         }
     }
-
 
     private void openGalleryForNewCase(Uri[] imageUriHolder, ImageView photoPreview) {
         isAddingNewCase = true;
@@ -1159,8 +1485,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE);
     }
 
-
-
     private void showListOfCasesDialog(MarkerInfo info) {
         // Inflate the custom layout for the list of cases
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -1168,10 +1492,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Set up the ListView and adapter
         ListView caseListView = dialogView.findViewById(R.id.case_list_view);
-        ArrayAdapter<CaseInfo> adapter = new ArrayAdapter<CaseInfo>(this, R.layout.item_case, info.caseDescriptions) {
+        List<CaseInfo> cases = new ArrayList<>(info.getCaseDescriptions().values());
+
+        ArrayAdapter<CaseInfo> adapter = new ArrayAdapter<CaseInfo>(this, R.layout.item_case, cases) {
             @NonNull
             @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
+            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
                 if (convertView == null) {
                     convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_case, parent, false);
                 }
@@ -1182,17 +1508,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 TextView caseDescription = convertView.findViewById(R.id.case_description);
                 ImageView casePhoto = convertView.findViewById(R.id.case_photo);
 
-                caseDate.setText("Date: " + caseInfo.date);
-                caseDescription.setText(caseInfo.description);
+                if (caseInfo != null) {
+                    caseDate.setText("Date: " + caseInfo.getDate());
+                    caseDescription.setText(caseInfo.getDescription());
 
-                if (caseInfo.imageUri != null) {
-                    casePhoto.setVisibility(View.VISIBLE);
-                    Glide.with(MapsActivity.this)
-                            .load(caseInfo.imageUri)
-                            .centerCrop()
-                            .into(casePhoto);
-                } else {
-                    casePhoto.setVisibility(View.GONE);
+                    if (caseInfo.getImageUrl() != null) {
+                        casePhoto.setVisibility(View.VISIBLE);
+                        Glide.with(MapsActivity.this)
+                                .load(caseInfo.getImageUrl())
+                                .centerCrop()
+                                .into(casePhoto);
+                    } else {
+                        casePhoto.setVisibility(View.GONE);
+                    }
                 }
 
                 return convertView;
@@ -1207,28 +1535,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .show();
     }
 
+    private void showPhotosDialog(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            Toast.makeText(this, "No photos available.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-    private void showPhotosDialog(List<Uri> imageUris) {
         // Inflate the custom layout for viewing photos
         LayoutInflater inflater = LayoutInflater.from(this);
         View dialogView = inflater.inflate(R.layout.dialog_photos_viewer, null);
 
         ListView photosListView = dialogView.findViewById(R.id.photos_list_view);
 
-        ArrayAdapter<Uri> adapter = new ArrayAdapter<Uri>(this, R.layout.item_photo, imageUris) {
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_photo, imageUrls) {
             @NonNull
             @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
+            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
                 if (convertView == null) {
                     convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_photo, parent, false);
                 }
 
-                Uri imageUri = getItem(position);
+                String imageUrl = getItem(position);
                 ImageView photoView = convertView.findViewById(R.id.photo_view);
 
-                if (imageUri != null) {
+                if (imageUrl != null) {
                     Glide.with(MapsActivity.this)
-                            .load(imageUri)
+                            .load(imageUrl)
                             .centerCrop()
                             .into(photoView);
                 }
@@ -1243,7 +1575,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setPositiveButton("OK", null)
                 .show();
     }
-
 
     private void centerMarker(Marker marker, float zoomLevel) {
         if (mMap != null) {
@@ -1331,44 +1662,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return poly;
     }
 
-    public static class MarkerInfo {
-        String category;
-        String description;
-        Date reportedDate;
-        Circle circle;
-        public int numberOfCases;
-        String ratingOrUrgency; // For warnings and complaints
-        List<CaseInfo> caseDescriptions;
-        List<Uri> imageUris;
-
-        MarkerInfo(String category, String description, Date reportedDate, Circle circle, int numberOfCases, String ratingOrUrgency, List<Uri> imageUris) {
-            this.category = category;
-            this.description = description;
-            this.reportedDate = reportedDate;
-            this.circle = circle;
-            this.numberOfCases = numberOfCases;
-            this.ratingOrUrgency = ratingOrUrgency;
-            this.imageUris = imageUris != null ? imageUris : new ArrayList<>();
-            this.caseDescriptions = new ArrayList<>();
-            this.caseDescriptions.add(new CaseInfo(new SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(reportedDate), description, imageUris != null && !imageUris.isEmpty() ? imageUris.get(0) : null));
-        }
-    }
-
-    private static class CaseInfo {
-        String date;
-        String description;
-        Uri imageUri;
-
-        CaseInfo(String date, String description, Uri imageUri) {
-            this.date = date;
-            this.description = description;
-            this.imageUri = imageUri;
-        }
-    }
 
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        // Handle permission results
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -1403,9 +1702,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(this, "Camera permission is required to take photos.", Toast.LENGTH_SHORT).show();
             }
         } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            // Handle location permission result
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                enableUserLocation();
+            } else {
+                Toast.makeText(this, "Location permission is required.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
+    // Function to add warning to Firebase
+    private void addWarningMarker(MarkerInfo warning) {
+        addWarningToFirebase(warning);
+    }
+
+    // Function to add complaint to Firebase
+    private void addComplaintMarker(MarkerInfo complaint) {
+        addComplaintToFirebase(complaint);
+    }
 
 }

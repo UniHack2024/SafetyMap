@@ -62,8 +62,8 @@
             android:textColor="@android:color/black"
             android:paddingTop="8dp" />
 
-        <LinearLayout
-            android:id="@+id/rating_buttons_layout"
+        <RadioGroup
+            android:id="@+id/rating_radio_group"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -71,35 +71,35 @@
             android:layout_marginTop="8dp"
             android:layout_marginBottom="16dp">
 
-            <Button
-                android:id="@+id/rating_low"
+            <RadioButton
+                android:id="@+id/radio_low"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Low"
-                android:textColor="@android:color/white"
-                android:backgroundTint="#8A2BE2"
+                android:textColor="@android:color/holo_purple"
+                android:background="?attr/selectableItemBackground"
                 android:padding="8dp" />
 
-            <Button
-                android:id="@+id/rating_intermediary"
+            <RadioButton
+                android:id="@+id/radio_moderate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Moderate"
-                android:textColor="@android:color/white"
-                android:backgroundTint="#FFA500"
+                android:textColor="@android:color/holo_purple"
+                android:background="?attr/selectableItemBackground"
                 android:padding="8dp"
                 android:layout_marginStart="8dp" />
 
-            <Button
-                android:id="@+id/rating_dangerous"
+            <RadioButton
+                android:id="@+id/radio_high"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="High"
-                android:textColor="@android:color/white"
-                android:backgroundTint="#FF0000"
+                android:textColor="@android:color/holo_purple"
+                android:background="?attr/selectableItemBackground"
                 android:padding="8dp"
                 android:layout_marginStart="8dp" />
-        </LinearLayout>
+        </RadioGroup>
 
         <Button
             android:id="@+id/dialog_ok_button"

@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.play.services.places)
     implementation(libs.places)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.storage)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -61,6 +62,9 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
     implementation("com.google.firebase:firebase-auth:22.1.1")
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-database")
+    implementation ("com.google.firebase:firebase-storage")
 }
 
 apply(plugin = "com.google.gms.google-services")
